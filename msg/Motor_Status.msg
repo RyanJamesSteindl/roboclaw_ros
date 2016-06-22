@@ -1,0 +1,9 @@
+Header header
+int32 serial_no
+string name
+int16 error
+float32 current
+float32 velocity
+int16 distance
+int32 encoderCount
+int32 encoderPosition
