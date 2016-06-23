@@ -1,10 +1,10 @@
 
 <launch>
-    <node name="motorcontrol_fl" pkg="skupar" type="motor_control.py">
+    <node name="motorcontrol_fl" pkg="skupar" type="motor_control.py" respawn="true">
 	<param name="name" value="front_left"/>
 	<param name="serial_no" value="472391"/>
     </node>
-    <node name="motorcontrol_fr" pkg="skupar" type="motor_control.py">
+    <node name="motorcontrol_fr" pkg="skupar" type="motor_control.py" respawn="true">
 	<param name="name" value="front_right"/>
 	<param name="serial_no" value="472414"/>
     </node>
