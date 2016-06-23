@@ -25,7 +25,7 @@ def callback(status):
     	rospy.loginfo(rospy.get_caller_id() + 'I heard %s from %s' %(status,name))
     	try:
         	motorControl.setAcceleration(0, 100)
-        	motorControl.setVelocity(0, mstatus.velocity)
+        	motorControl.setVelocity(0, mstatus.getVelocity)
     	except PhidgetException as e:
         	print("Phidget Exception %i: %s" % (e.code, e.details))
    
@@ -77,6 +77,8 @@ def motor_status():
 		if ctrlSpeed < -maxSpeed:
 			ctrlSpeed = -maxSpeed
 ###################
+		# Add timestamp
+		mstatus.header.stamp=rospy.get_rostime()
 		print("Encoder Velocity[%s]: %d\n" %(name, encoderVel))
 		try:
 			mstatus.distance = motorControl.getSensorRawValue(0) 
@@ -109,7 +111,7 @@ def motor_status():
 	    		print("Exiting....")
 	    		exit(1)
 							
-		rospy.loginfo(str(mstatus))
+		rospy.loginfo(str(mstatus.header.stamp))
 		pub.publish(mstatus)
 		
 		r = rospy.Rate(10)
