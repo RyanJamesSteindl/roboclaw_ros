@@ -23,9 +23,14 @@ from beginner_tutorials.msg import Motor_Demand
 
 
 ##########################
-def callback(core_status,local_status):
-    	rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(core_status))
-	local_status=core_status
+def callback(core_status,local):
+    	#rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(core_status))
+	local.velocity=core_status.velocity
+	local.current=core_status.current
+	local.error=core_status.error
+	local.distance=core_status.distance	
+	local.encoderCount=core_status.encoderCount
+	local.encoderPosition=core_status.encoderPosition
    
 def command():
 	
@@ -57,7 +62,11 @@ def command():
 			rr_demand.setVelocity=0
 		elif x=='q':
 			exit(0)
-		#rospy.loginfo(str(mstatus))
+		rospy.loginfo(str(fl_status.velocity))
+		rospy.loginfo(str(fl_demand.setVelocity))
+		#rospy.loginfo(str(fr_demand))
+		#rospy.loginfo(str(rl_demand))
+		#rospy.loginfo(str(rr_demand))
 
 		pub_fl.publish(fl_demand)
 		pub_fr.publish(fr_demand)
@@ -70,7 +79,9 @@ def command():
     	else:
 		print("Done.")
         	try:
-	    		motorControl.closePhidget()
+	   		motorControl.setAcceleration(0, 100)
+			motorControl.setVelocity(0, 0)
+			motorControl.closePhidget()
         	except PhidgetException as e:
 	    		print("Phidget Exception %i: %s" % (e.code, e.details))
 	    		print("Exiting....")

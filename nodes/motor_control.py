@@ -22,10 +22,10 @@ from beginner_tutorials.msg import Motor_Demand
 
 ##########################
 def callback(status):
-    	rospy.loginfo(rospy.get_caller_id() + 'I heard %s from %s' %(status,name))
+    	rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(status))
     	try:
         	motorControl.setAcceleration(0, 100)
-        	motorControl.setVelocity(0, mstatus.getVelocity)
+        	motorControl.setVelocity(0, status.setVelocity)
     	except PhidgetException as e:
         	print("Phidget Exception %i: %s" % (e.code, e.details))
    
@@ -120,6 +120,8 @@ def motor_status():
     	else:
 		print("Done.")
         	try:
+			motorControl.setAcceleration(0, 100)
+			motorControl.setVelocity(0, 0)
 	    		motorControl.closePhidget()
         	except PhidgetException as e:
 	    		print("Phidget Exception %i: %s" % (e.code, e.details))
