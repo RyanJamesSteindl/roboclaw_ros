@@ -18,65 +18,94 @@ from Phidgets.Phidget import PhidgetLogLevel
 from beginner_tutorials.msg import Motor_Status
 from beginner_tutorials.msg import Motor_Demand
 
+speed = 0									#Init Speed Variable
+stop = False 									#Init System-Stop
+samplerate = 0.008								#Init Samplerate
+e_integral = 0									#Init Integral
+kp = 1									#Init Prop Gain
+ki = 0.5									#Init Integral Gain
+k0 = 1	 									#Overall Gain
+output = 0										#Init Controller Variable
+conv = 170									#Init Conversion-Variable
+maxOutput = 100									#Init Maxoutput
+DEADBAND = 3 									#Init DeadBand 
+encoderVel = 0
+
+def PID():
+	global e_integral
+	global encoderVel
+	try:
+		encoderVel1 = motorControl.getEncoderPosition(0)		#Get first EncoderPosition Value
+	except PhidgetException as e:
+		print("Phidget Exception %i: %s" % (e.code, e.details))
+		print("Exiting....")
+		exit(1)
+	rospy.sleep(samplerate)							#Wait for the samplerate
+	try:
+		encoderVel2 = motorControl.getEncoderPosition(0)		#Get second EncoderPosition Value
+	except PhidgetException as e:
+		print("Phidget Exception %i: %s" % (e.code, e.details))
+		print("Exiting....")
+		exit(1)
+	encoderVel = (encoderVel2 - encoderVel1)/samplerate			#Calculate encoderVelocity
+###################
+	speed = mdemand.setVelocity*conv					#Convert Speed Demand
+	speed = abs(speed)									
+	e = float((speed - encoderVel)/conv)					#compute Error
+###################
+	if abs(e)<DEADBAND:							#use Deadband
+		e = 0
+###################
+	e_integral = e_integral + ki*e*samplerate				#compute Integral Value
+	output = (kp*e + e_integral)/k0						#Add Integral and Prop Gain and Divide by OverallGain
+	ctrlSpeed = output*mdemand.setVelocity					#Multiply it with the current Velocity
+###################		
+	if ctrlSpeed > maxOutput:						#Prevent Output from exceeding
+		ctrlSpeed = maxOutput
+	if ctrlSpeed < -maxOutput:
+		ctrlSpeed = -maxOutput
+###################
+	try:
+		#if (invert):
+		#	motorControl.setVelocity(0,-ctrlSpeed)
+		#else:
+		#	motorControl.setVelocity(0,ctrlSpeed)
+		motorControl.setVelocity(0, ctrlSpeed)
+		motorControl.setAcceleration(0,100)
+	except PhidgetException as e:
+		print("Phidget Exception %i: %s" % (e.code, e.details))
+		print("Exiting....")
+		exit(1)
+
+	abs(ctrlSpeed)	
 
 
-##########################
-def callback(status):
-    	rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(status))
-    	try:
-        	motorControl.setAcceleration(0, 100)
-        	motorControl.setVelocity(0, status.setVelocity)
-    	except PhidgetException as e:
-        	print("Phidget Exception %i: %s" % (e.code, e.details))
-   
+
+
+
+def callback(demand):
+    	rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(demand))
+	#speed_dmd=status.setVelocity
+	try:
+		mdemand.setAcceleration=demand.setAcceleration				#Overwrite Acceleration in new Variable
+		mdemand.setVelocity=demand.setVelocity					#Overwrite Velocity in new Variable
+	except PhidgetException as e:
+		print("Phidget Exception %i: %s" % (e.code, e.details))
+
+
+
+
+
 def motor_status():
 	print "Initialising Publisher"
-	pub=rospy.Publisher("%s_status" %name, Motor_Status, queue_size=10)
+	pub=rospy.Publisher("%s_status" %name, Motor_Status, queue_size=10)		#Creating Publisher Node
 	print "Initialising Subscriber"
-        sub=rospy.Subscriber("%s_dmd" %name, Motor_Demand, callback) 
+        sub=rospy.Subscriber("%s_dmd" %name, Motor_Demand, callback) 			#Creating Subscriber Node
 
-    	speed = 0
-    	speed_dmd = 0
-    	stop = False
-    	samplerate = 0.1
-    	e_integral = 0
-    	kp = 0.01
-    	ki = 0.05
-    	PI = 0
-    	conv = 170
-	maxSpeed = 100
- 
 	print "Looping on status"
     #samplerate = rospy.Rate(10) # 1hz
     	while not rospy.is_shutdown():
-		#print "Motor: " , name, motors[name]['index']
-        	try:
-	    		encoderVel1 = motorControl.getEncoderPosition(0)
-        	except PhidgetException as e:
-	    		print("Phidget Exception %i: %s" % (e.code, e.details))
-	    		print("Exiting....")
-	    		exit(1)
-		sleep(samplerate)
-        	try:
-	    		encoderVel2 = motorControl.getEncoderPosition(0)
-        	except PhidgetException as e:
-	    		print("Phidget Exception %i: %s" % (e.code, e.details))
-	    		print("Exiting....")
-	    		exit(1)
-		encoderVel = (encoderVel2 - encoderVel1)/samplerate
-###################
-		speed = float(mstatus.velocity)
-		speed = speed*conv
-		e = float((speed - encoderVel)/conv)
-		e_integral = e_integral + ki*e*samplerate
-		PI = kp*e + e_integral
-###################
-		ctrlSpeed = PI*float(mstatus.velocity)
-		if ctrlSpeed > maxSpeed:
-			ctrlSpeed = maxSpeed
-		if ctrlSpeed < -maxSpeed:
-			ctrlSpeed = -maxSpeed
-###################
+	 	PID()
 		# Add timestamp
 		mstatus.header.stamp=rospy.get_rostime()
 		print("Encoder Velocity[%s]: %d\n" %(name, encoderVel))
@@ -114,19 +143,20 @@ def motor_status():
 		rospy.loginfo(str(mstatus.header.stamp))
 		pub.publish(mstatus)
 		
-		r = rospy.Rate(10)
-		r.sleep()
-
     	else:
 		print("Done.")
-        	try:
-			motorControl.setAcceleration(0, 100)
-			motorControl.setVelocity(0, 0)
-	    		motorControl.closePhidget()
-        	except PhidgetException as e:
-	    		print("Phidget Exception %i: %s" % (e.code, e.details))
-	    		print("Exiting....")
-	    		exit(1)
+       	try:
+		motorControl.setAcceleration(0, 100)
+		motorControl.setVelocity(0, 0)
+    		motorControl.closePhidget()
+       	except PhidgetException as e:
+    		print("Phidget Exception %i: %s" % (e.code, e.details))
+    		print("Exiting....")
+    		exit(1)
+
+
+
+
 
 def displayDeviceInfo():
 	print("|--------------------------|-------------|----------------------------------|--------------|------------|")
@@ -169,7 +199,6 @@ def motorControlVelocityChanged(e):
 
 
 
-
 if __name__ == '__main__':
 #####################
    #Create an motorcontrol object
@@ -187,11 +216,13 @@ if __name__ == '__main__':
 	serial=rospy.get_param('~serial_no')
 	print "Serial =" , serial
 	print "\n\n"
+
+	invert=rospy.get_param('~invert')
 #####################	
 	
     	motorControl = MotorControl()
 	mstatus = Motor_Status()
-	
+	mdemand = Motor_Demand()
 	try:
 	#logging example, uncomment to generate a log file
 	#     motorControl.enableLogging(PhidgetLogLevel.PHIDGET_LOG_VERBOSE, "phidgetlog.log")

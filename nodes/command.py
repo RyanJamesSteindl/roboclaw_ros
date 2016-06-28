@@ -45,16 +45,23 @@ def command():
 
     	while not rospy.is_shutdown():
 		x=raw_input("Speed:")
+
+		#x=float(x)
+		#fl_demand.setVelocity=x
+		#fr_demand.setVelocity=x
+		#rl_demand.setVelocity=x
+		#rr_demand.setVelocity=x
+
 		if x=='w':
-			fl_demand.setVelocity=fl_status.velocity+10
-			fr_demand.setVelocity=fr_status.velocity+10
-			rl_demand.setVelocity=rl_status.velocity+10
-			rr_demand.setVelocity=rr_status.velocity+10
+			fl_demand.setVelocity=fl_status.velocity+50
+			fr_demand.setVelocity=fr_status.velocity+50
+			rl_demand.setVelocity=rl_status.velocity+50
+			rr_demand.setVelocity=rr_status.velocity+50
 		if x=='s':
-			fl_demand.setVelocity=fl_status.velocity-10
-			fr_demand.setVelocity=fr_status.velocity-10
-			rl_demand.setVelocity=rl_status.velocity-10
-			rr_demand.setVelocity=rr_status.velocity-10
+			fl_demand.setVelocity=fl_status.velocity-50
+			fr_demand.setVelocity=fr_status.velocity-50
+			rl_demand.setVelocity=rl_status.velocity-50
+			rr_demand.setVelocity=rr_status.velocity-50
 		if x=='x':
 			fl_demand.setVelocity=0
 			fr_demand.setVelocity=0
