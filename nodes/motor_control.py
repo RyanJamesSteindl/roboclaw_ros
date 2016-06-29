@@ -18,22 +18,30 @@ from Phidgets.Phidget import PhidgetLogLevel
 from beginner_tutorials.msg import Motor_Status
 from beginner_tutorials.msg import Motor_Demand
 
-speed = 0									#Init Speed Variable
+encoderDmd = 0									#Init Speed Variable
 stop = False 									#Init System-Stop
 samplerate = 0.008								#Init Samplerate
 e_integral = 0									#Init Integral
-kp = 1									#Init Prop Gain
-ki = 0.5									#Init Integral Gain
+kp = 15									#Init Prop Gain
+ki = 0.5 									#Init Integral Gain
 k0 = 1	 									#Overall Gain
 output = 0										#Init Controller Variable
 conv = 170									#Init Conversion-Variable
 maxOutput = 100									#Init Maxoutput
-DEADBAND = 3 									#Init DeadBand 
+DEADBAND = 3.00									#Init DeadBand 
 encoderVel = 0
+output_old = 0
+output = 0
 
 def PID():
+
 	global e_integral
 	global encoderVel
+	global output_old	
+	global output
+
+	output_old = output 	
+
 	try:
 		encoderVel1 = motorControl.getEncoderPosition(0)		#Get first EncoderPosition Value
 	except PhidgetException as e:
@@ -48,36 +56,44 @@ def PID():
 		print("Exiting....")
 		exit(1)
 	encoderVel = (encoderVel2 - encoderVel1)/samplerate			#Calculate encoderVelocity
-###################
-	speed = mdemand.setVelocity*conv					#Convert Speed Demand
-	speed = abs(speed)									
-	e = float((speed - encoderVel)/conv)					#compute Error
-###################
-	if abs(e)<DEADBAND:							#use Deadband
-		e = 0
-###################
-	e_integral = e_integral + ki*e*samplerate				#compute Integral Value
-	output = (kp*e + e_integral)/k0						#Add Integral and Prop Gain and Divide by OverallGain
-	ctrlSpeed = output*mdemand.setVelocity					#Multiply it with the current Velocity
-###################		
-	if ctrlSpeed > maxOutput:						#Prevent Output from exceeding
-		ctrlSpeed = maxOutput
-	if ctrlSpeed < -maxOutput:
-		ctrlSpeed = -maxOutput
+
+	encoderDmd = mdemand.setVelocity*conv					#Convert Speed Demand
+	
+	print "Encoder Demand=%i" %encoderDmd
+	e = float((encoderDmd - encoderVel)/conv)					#compute Error
+	e = round(e, 0)
+	print "Difference e:%s" %e
+	
+	output = (kp*e + ki*e_integral)/k0
+	
+#	if abs(e) <= DEADBAND:
+#		output = float(encoderDmd)	
+	if output > maxOutput:						#Prevent Output from exceeding
+		output = maxOutput
+	elif output < -maxOutput:
+		output = -maxOutput
+	elif (output - encoderDmd)<= DEADBAND:
+		output = mdemand.setVelocity 
+	else:
+		e_integral = e_integral + e*samplerate			#compute Integral Value
+	output = round(output, 0)	
+	print"Output: %s"%output
+	
 ###################
 	try:
-		#if (invert):
-		#	motorControl.setVelocity(0,-ctrlSpeed)
-		#else:
-		#	motorControl.setVelocity(0,ctrlSpeed)
-		motorControl.setVelocity(0, ctrlSpeed)
+		if (invert):
+			motorControl.setVelocity(0,-output)
+		elif encoderDmd == 0:
+			motorControl.setVelocity(0, 0) 
+		else:
+			motorControl.setVelocity(0,output)
+		#motorControl.setVelocity(0, ctrlSpeed)
 		motorControl.setAcceleration(0,100)
 	except PhidgetException as e:
 		print("Phidget Exception %i: %s" % (e.code, e.details))
 		print("Exiting....")
 		exit(1)
 
-	abs(ctrlSpeed)	
 
 
 
@@ -105,7 +121,9 @@ def motor_status():
 	print "Looping on status"
     #samplerate = rospy.Rate(10) # 1hz
     	while not rospy.is_shutdown():
+
 	 	PID()
+
 		# Add timestamp
 		mstatus.header.stamp=rospy.get_rostime()
 		print("Encoder Velocity[%s]: %d\n" %(name, encoderVel))
@@ -218,17 +236,21 @@ if __name__ == '__main__':
 	print "\n\n"
 
 	invert=rospy.get_param('~invert')
+
 #####################	
 	
     	motorControl = MotorControl()
 	mstatus = Motor_Status()
 	mdemand = Motor_Demand()
+
+#####################
+
 	try:
 	#logging example, uncomment to generate a log file
-	#     motorControl.enableLogging(PhidgetLogLevel.PHIDGET_LOG_VERBOSE, "phidgetlog.log")
+	#    motorControl.enableLogging(PhidgetLogLevel.PHIDGET_LOG_VERBOSE, "phidgetlog.log")
 	#    motorControl.setOnAttachHandler(motorControlAttached)
 	#    motorControl.setOnDetachHandler(motorControlDetached)
-	    motorControl.setOnErrorhandler(motorControlError)
+	     motorControl.setOnErrorhandler(motorControlError)
 	#    motorControl.setOnCurrentChangeHandler(motorControlCurrentChanged)
 	#    motorControl.setOnInputChangeHandler(motorControlInputChanged)
 	#    motorControl.setOnVelocityChangeHandler(motorControlVelocityChanged)
@@ -248,6 +270,7 @@ if __name__ == '__main__':
 		exit(1)
 
 #Waiting for the attachment
+
 	rospy.sleep(1)
 	print("Waiting for attach....")
 	rospy.sleep(1)
@@ -263,8 +286,7 @@ if __name__ == '__main__':
 			print("Exiting....")
 			exit(1)
 		print("Exiting....")
-		exit(1)	#Get parameters from ros parameter server for serial number and motor name (topic name)	
-	#print("Attaching Motor[%i] = %s\n\n\n\n" %(ind,value))    
+		exit(1)
 
 	try:
 		print "Entering Loop"

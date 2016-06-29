@@ -53,15 +53,15 @@ def command():
 		#rr_demand.setVelocity=x
 
 		if x=='w':
-			fl_demand.setVelocity=fl_status.velocity+50
-			fr_demand.setVelocity=fr_status.velocity+50
-			rl_demand.setVelocity=rl_status.velocity+50
-			rr_demand.setVelocity=rr_status.velocity+50
+			fl_demand.setVelocity=fl_status.velocity+40
+			fr_demand.setVelocity=fr_status.velocity+40
+			rl_demand.setVelocity=rl_status.velocity+40
+			rr_demand.setVelocity=rr_status.velocity+40
 		if x=='s':
-			fl_demand.setVelocity=fl_status.velocity-50
-			fr_demand.setVelocity=fr_status.velocity-50
-			rl_demand.setVelocity=rl_status.velocity-50
-			rr_demand.setVelocity=rr_status.velocity-50
+			fl_demand.setVelocity=fl_status.velocity-40
+			fr_demand.setVelocity=fr_status.velocity-40
+			rl_demand.setVelocity=rl_status.velocity-40
+			rr_demand.setVelocity=rr_status.velocity-40
 		if x=='x':
 			fl_demand.setVelocity=0
 			fr_demand.setVelocity=0
