@@ -15,24 +15,28 @@ from Phidgets.Devices.MotorControl import MotorControl
 from time import sleep
 from Phidgets.Phidget import PhidgetLogLevel
 
-from beginner_tutorials.msg import Motor_Status
-from beginner_tutorials.msg import Motor_Demand
+from skupar.msg import Motor_Status
+from skupar.msg import Motor_Demand
 
 encoderDmd = 0									#Init Speed Variable
 stop = False 									#Init System-Stop
-samplerate = 0.1								#Init Samplerate
+samplerate = 0.01								#Init Samplerate
 e_integral = 0									#Init Integral
-kp = 1									#Init Prop Gain
-ki = 0.5 									#Init Integral Gain
+kp = 100									#Init Prop Gain
+ki = 0.1 									#Init Integral Gain
 k0 = 1	 									#Overall Gain
 output = 0										#Init Controller Variable
 conv = 190									#Init Conversion-Variable
 maxOutput = 100									#Init Maxoutput
 DEADBAND = 2									#Init DeadBand 
 encoderVel = 0
+encoderPos = 0
+encoderPos_old = 0
 output_old = 0
 output = 0
-
+timesum = 0
+time1 = 0
+time2 = 0
 def PID():
 
 	global e_integral
@@ -41,31 +45,24 @@ def PID():
 	global output
 	global encoderVel
 	global encoderVel_new
+	global r
+	global encoderPos
+	global encoderPos_old
+	global timesum
+	global time1
+	global time2
 
- 	time1 = time.time()							#Calculate the Time before time.sleep(samplerate)
-	encoderVel_old = encoderVel						#memorize the old encoderVelocity
-	try:
-		encoderVel1 = motorControl.getEncoderPosition(0)		#Get first EncoderPosition Value
+	encoderPos_old = encoderPos
+ 	try:
+		encoderPos = motorControl.getEncoderPosition(0)		#Get first EncoderPosition Value
 	except PhidgetException as e:
 		print("Phidget Exception %i: %s" % (e.code, e.details))
 		print("Exiting....")
 		exit(1)
-	
-	time.sleep(samplerate)							#Wait for the samplerate
-	time2 = time.time()							#Calculate the Time after time.sleep(samplerate)
-	try:
-		encoderVel2 = motorControl.getEncoderPosition(0)		#Get second EncoderPosition Value
-	except PhidgetException as e:
-		print("Phidget Exception %i: %s" % (e.code, e.details))
-		print("Exiting....")
-		exit(1)
-	timesum = time2-time1							#Calculate the Difference between Time2 and Time1
-	encoderVel = (encoderVel2 - encoderVel1)/timesum			#Calculate encoderVelocity
-	encoderVel_new = (encoderVel + encoderVel_old)/2
+	encoderVel = (encoderPos - encoderPos_old)/samplerate		#Calculate encoderVelocity
 	encoderDmd = mdemand.setVelocity*conv					#Convert Speed Demand
-	
 	print "Encoder Demand=%i" %encoderDmd
-	e = float((encoderDmd - encoderVel_new)/conv)				#compute Error
+	e = float((encoderDmd - encoderVel)/conv)				#compute Error
 	e = round(e, 0)								#Round Error	
 	print "Difference e:%s" %e
 	
@@ -122,16 +119,23 @@ def motor_status():
 	print "Initialising Subscriber"
         sub=rospy.Subscriber("%s_dmd" %name, Motor_Demand, callback) 			#Creating Subscriber Node
 	
-	motorControl.setEncoderPosition(0, 0)
+	try:
+		motorControl.setEncoderPosition(0, 0)
+	except PhidgetException as e:
+		print("Phidget Exception %i: %s" % (e.code, e.details))
+		print("Exiting....")
+		exit(1)
+
 	print "Looping on status"
     #samplerate = rospy.Rate(10) # 1hz
     	while not rospy.is_shutdown():
 
+		time1 = time.time()
 	 	PID()
 
 		# Add timestamp
 		mstatus.header.stamp=rospy.get_rostime()
-		print("Encoder Velocity[%s]: %d\n" %(name, encoderVel_new))
+		print("Encoder Velocity[%s]: %d\n" %(name, encoderVel))
 		try:
 			mstatus.distance = motorControl.getSensorRawValue(0) 
 	        except PhidgetException as e:
@@ -165,7 +169,11 @@ def motor_status():
 							
 		rospy.loginfo(str(mstatus.header.stamp))
 		pub.publish(mstatus)
-		
+		r.sleep()
+		time2 = time.time()							#Calculate the Time before time.sleep(samplerate)
+		timesum = time2 - time1	
+	
+		print"Time Difference:%f"%timesum	
     	else:
 		print("Done.")
        	try:
@@ -276,7 +284,7 @@ if __name__ == '__main__':
 
 #Waiting for the attachment
 
-	rospy.sleep(1)
+	r = rospy.Rate(100)
 	print("Waiting for attach....")
 	rospy.sleep(1)
 	try:
