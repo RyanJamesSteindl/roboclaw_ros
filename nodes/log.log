@@ -2,3 +2,11 @@ INFO:rospy.core:signal_shutdown [atexit]
 INFO:rospy.core:signal_shutdown [atexit]
 INFO:rospy.core:signal_shutdown [atexit]
 INFO:rospy.core:signal_shutdown [atexit]
+INFO:rospy.topics:topicmanager initialized
+INFO:rospy.topics:topicmanager initialized
+INFO:rospy.topics:topicmanager initialized
+INFO:rospy.topics:topicmanager initialized
+INFO:rospy.topics:topicmanager initialized
+INFO:rospy.topics:topicmanager initialized
+INFO:rospy.topics:topicmanager initialized
+INFO:rospy.topics:topicmanager initialized

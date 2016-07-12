@@ -17,10 +17,11 @@ from Phidgets.Devices.MotorControl import MotorControl
 #import methods for sleeping thread
 from time import sleep
 from Phidgets.Phidget import PhidgetLogLevel
-from beginner_tutorials.msg import Motor_Status
-from beginner_tutorials.msg import Motor_Demand
+from skupar.msg import Motor_Status
+from skupar.msg import Motor_Demand
 
-
+count = 0
+x = 0
 
 ##########################
 def callback(core_status,local):
@@ -33,7 +34,8 @@ def callback(core_status,local):
 	local.encoderPosition=core_status.encoderPosition
    
 def command():
-	
+	global count
+	global x
 	pub_fl=rospy.Publisher("front_left_dmd", Motor_Demand, queue_size=10)
         sub_fl=rospy.Subscriber("front_left_status", Motor_Status, callback, fl_status) 
 	pub_fr=rospy.Publisher("front_right_dmd", Motor_Demand, queue_size=10)
@@ -44,8 +46,10 @@ def command():
         sub_rr=rospy.Subscriber("rear_right_status", Motor_Status, callback, rr_status) 
 
     	while not rospy.is_shutdown():
-		x=raw_input("Speed:")
-
+		if count ==10:
+			x=raw_input("Speed:")
+			count = 0
+		count += 1
 		x=float(x)
 		fl_demand.setVelocity=x
 		fr_demand.setVelocity=x
@@ -69,8 +73,6 @@ def command():
 		#	rr_demand.setVelocity=0
 		#elif x=='q':
 	#		exit(0)
-		rospy.loginfo(str(fl_status.velocity))
-		rospy.loginfo(str(fl_demand.setVelocity))
 		#rospy.loginfo(str(fr_demand))
 		#rospy.loginfo(str(rl_demand))
 		#rospy.loginfo(str(rr_demand))
@@ -80,13 +82,16 @@ def command():
 		pub_rl.publish(rl_demand)
 		pub_rr.publish(rr_demand)	
 	
+		rospy.loginfo(str(fl_status.velocity))
+		#rospy.loginfo(str(fl_demand.setVelocity))
+		
 		r = rospy.Rate(10)
 		r.sleep()
 
     	else:
 		print("Done.")
         	try:
-	   		motorControl.setAcceleration(0, 100)
+	   		motorControl.setAcceleration(0, 6000)
 			motorControl.setVelocity(0, 0)
 			motorControl.closePhidget()
         	except PhidgetException as e:

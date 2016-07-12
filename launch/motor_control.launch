@@ -7,7 +7,7 @@
     	<node name="motorcontrol_fr" pkg="skupar" type="motor_control.py" respawn="true">
 		<param name="name" value="front_right"/>
 		<param name="serial_no" value="472391"/>
-		<param name="invert" value="True"/>
+		<param name="invert" value="False"/>
     	</node>
     	<node name="motorcontrol_rl" pkg="skupar" type="motor_control.py" respawn="true">
 		<param name="name" value="rear_left"/>
@@ -17,6 +17,6 @@
     	<node name="motorcontrol_rr" pkg="skupar" type="motor_control.py" respawn="true">
 		<param name="name" value="rear_right"/>
 		<param name="serial_no" value="472414"/>
-		<param name="invert" value="True"/>
+		<param name="invert" value="False"/>
     	</node>
 </launch>

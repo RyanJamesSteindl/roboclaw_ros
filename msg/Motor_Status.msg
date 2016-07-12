@@ -4,6 +4,7 @@ string name
 int16 error
 float32 current
 float32 velocity
+float32 encoderVelocity
 int16 distance
 int32 encoderCount
 int32 encoderPosition
