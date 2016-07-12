@@ -1,0 +1,7 @@
+<launch>
+	<node name="motorcontrol_fr" pkg="skupar" type="MotorPID.py" respawn="true">
+		<param name="name" value="front_right"/>
+		<param name="serial_no" value="472390"/>
+		<param name="invert" value="False"/>
+    	</node>
+</launch>
