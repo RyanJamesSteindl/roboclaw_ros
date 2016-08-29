@@ -20,8 +20,9 @@ from Phidgets.Phidget import PhidgetLogLevel
 from skupar.msg import Motor_Status
 from skupar.msg import Motor_Demand
 
-count = 0
-x = 0
+import roboclaw
+
+address = 0x80
 
 ##########################
 def callback(core_status,local):
@@ -34,28 +35,21 @@ def callback(core_status,local):
 	local.encoderPosition=core_status.encoderPosition
    
 def command():
-	global count
 	global x
-	pub_fl=rospy.Publisher("front_left_dmd", Motor_Demand, queue_size=10)
-        sub_fl=rospy.Subscriber("front_left_status", Motor_Status, callback, fl_status) 
-	pub_fr=rospy.Publisher("front_right_dmd", Motor_Demand, queue_size=10)
-        sub_fl=rospy.Subscriber("front_right_status", Motor_Status, callback, fr_status) 
-	pub_rl=rospy.Publisher("rear_left_dmd", Motor_Demand, queue_size=10)
-        sub_rl=rospy.Subscriber("rear_left_status", Motor_Status, callback, rl_status) 
-	pub_rr=rospy.Publisher("rear_right_dmd", Motor_Demand, queue_size=10)
-        sub_rr=rospy.Subscriber("rear_right_status", Motor_Status, callback, rr_status) 
+	pub_front=rospy.Publisher("front_dmd", Motor_Demand, queue_size=10)
+        sub_front=rospy.Subscriber("front_status", Motor_Status, callback, front_status) 
+
+	pub_rear=rospy.Publisher("rear_dmd", Motor_Demand, queue_size=10)
+        sub_rear=rospy.Subscriber("rear_status", Motor_Status, callback, rear_status) 
 
     	while not rospy.is_shutdown():
-		if count ==10:
-			x=raw_input("Speed:")
-			count = 0
-		count += 1
+		x=raw_input("Distance:")
 		x=float(x)
-		fl_demand.setVelocity=x
-		fr_demand.setVelocity=x
-		rl_demand.setVelocity=x
-		rr_demand.setVelocity=x
-
+		front_demand.setEncoderValueM1=x
+		front_demand.setEncoderValueM2=x
+		rear_demand.setEncoderValueM1=x
+		rear_demand.setEncoderValueM2=x
+		
 		#if x=='w':
 		#	fl_demand.setVelocity=fl_status.velocity+40
 		#	fr_demand.setVelocity=fr_status.velocity+40
@@ -77,12 +71,9 @@ def command():
 		#rospy.loginfo(str(rl_demand))
 		#rospy.loginfo(str(rr_demand))
 
-		pub_fl.publish(fl_demand)
-		pub_fr.publish(fr_demand)
-		pub_rl.publish(rl_demand)
-		pub_rr.publish(rr_demand)	
-	
-		rospy.loginfo(str(fl_status.velocity))
+		pub_front.publish(front_demand)
+		pub_rear.publish(rear_demand)	
+		rospy.loginfo(str(front_status.velocity))
 		#rospy.loginfo(str(fl_demand.setVelocity))
 		
 		r = rospy.Rate(10)
@@ -90,28 +81,15 @@ def command():
 
     	else:
 		print("Done.")
-        	try:
-	   		motorControl.setAcceleration(0, 6000)
-			motorControl.setVelocity(0, 0)
-			motorControl.closePhidget()
-        	except PhidgetException as e:
-	    		print("Phidget Exception %i: %s" % (e.code, e.details))
-	    		print("Exiting....")
-	    		exit(1)
-
+		roboclaw.SpeedM1M2(address,0, 0)
 
 if __name__ == '__main__':
     	
-	motorControl = MotorControl()
-	fl_status=Motor_Status()
-	fr_status=Motor_Status()
-	rr_status=Motor_Status()
-	rl_status=Motor_Status()
-	fl_demand=Motor_Demand()
-	fr_demand=Motor_Demand()
-	rl_demand=Motor_Demand()
-	rr_demand=Motor_Demand()
-	
+	front_status=Motor_Status()
+	front_demand=Motor_Demand()
+	rear_status=Motor_Status()
+	rear_demand=Motor_Demand()
+		
 	rospy.init_node('Controller')
 	try:
 	    	command()

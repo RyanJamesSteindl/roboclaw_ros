@@ -13,267 +13,128 @@ __date__ = 'May 17 2010'
 from ctypes import *
 import sys, os, time
 import math 
-import logging
-logging.basicConfig(filename='log.log',level=logging.DEBUG)
+import time
 #ROS imports
 import rospy
 from skupar.msg import Motor_Status
 from skupar.msg import Motor_Demand
 from std_msgs.msg import String
 from ctypes import *
-#Phidget specific imports
-from Phidgets.PhidgetException import PhidgetErrorCodes, PhidgetException
-from Phidgets.Events.Events import AttachEventArgs, DetachEventArgs, ErrorEventArgs, VelocityChangeEventArgs
-from Phidgets.Devices.MotorControl import MotorControl
-#import methods for sleeping thread
-from time import sleep
-from Phidgets.Phidget import PhidgetLogLevel
+#Import Roboclaw
+import roboclaw
+import serial
 
-#Initiate GLOBAL variables
-command = 0
-#PID Values
-Kp = 2 
-Ki = 0.4
-Kd = 0
-dt = 24 
-errorVelocity = 0
-integral = 0
-derivative = 0
-debugList = []
-currentVelocity =0 
+address = 0x80
 
-def debug():
-    for i in debugList:
-	print debugList
+# Values
+CntM1 = 0
 
-#Information Display Function
-def displayDeviceInfo():
-    print("|------------|----------------------------------|--------------|------------|")
-    print("|- Attached -|-              Type              -|- Serial No. -|-  Version -|")
-    print("|------------|----------------------------------|--------------|------------|")
-    print("|- %8s -|- %30s -|- %10d -|- %8d -|" % (motorControl.isAttached(), motorControl.getDeviceName(), motorControl.getSerialNum(), motorControl.getDeviceVersion()))
-    print("|------------|----------------------------------|--------------|------------|")
+SKpM1 = 700.0
+SKiM1 = 10.0
+SKdM1 = 0
+PKpM1 = 700.0
+PKiM1 = 10.0
+PKdM1 = 0
 
-#Event Handler Callback Functions
-def motorControlAttached(e):
-    attached = e.device
-    print("MotorControl %i Attached!" % (attached.getSerialNum()))
+AccelM1 = 1800
+DeccelM1 = 1800
+SpeedM1 = 2100
 
-def motorControlDetached(e):
-    detached = e.device
-    print("MotorControl %i Detached!" % (detached.getSerialNum()))
+############
+CntM2 = 0
 
-def motorControlError(e):
-    try:
-        source = e.device
-        print("Motor Control %i: Phidget Error %i: %s" % (source.getSerialNum(), e.eCode, e.description))
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
+SKpM2 = 700.0
+SKiM2 = 10.0
+SKdM2 = 0
+PKpM2 = 700.0
+PKiM2 = 10.0
+PKdM2 = 0
 
-def motorControlPositionChanged(e):
-    e.device.setVelocity(0, velocityPID(mdemand.setVelocity, e.time, e.positionChange))
+AccelM2 = 1800
+DeccelM2 = 1800
+SpeedM2 = 2100
+
+############
+Deadzone = 15
+MaxI = 20
+MinPos = 0
+MaxPos = 100000
+
 
 def callback(demand):
-    rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(demand))
-    try:
-        mdemand.setAcceleration = demand.setAcceleration
-        mdemand.setVelocity = demand.setVelocity
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
+    	rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(demand))
+#       demand.setAcceleration = demand.setAcceleration
+        mdemand.setEncoderValueM1 = demand.setEncoderValueM1
+        mdemand.setEncoderValueM2 = demand.setEncoderValueM2
 
 def motor_status():
-   
-    try:
-        mstatus.distance = motorControl.getSensorRawValue(0)
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        print("Exiting....")
-        exit(1)
-    try:
-        mstatus.velocity = currentVelocity 
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        print("Exiting....")
-        exit(1)
-    try:
-        mstatus.current = motorControl.getCurrent(0)
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        print("Exiting....")
-        exit(1)
-    try:
-        mstatus.encoderCount = motorControl.getEncoderCount()
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        print("Exiting....")
-        exit(1)
-    try:
-        mstatus.encoderPosition = motorControl.getEncoderPosition(0)
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        print("Exiting....")
-        exit(1)
-    pub.publish(mstatus)
-   # r.sleep
-    
-def positionPID():
-    pass    #TODO: POSITION CONTROL
-
-def velocityPID(targetVelocity, TimeDif, EncoderDif):
-    #PID Values
-    global Kp
-    global Ki
-    global Kd
-    dt = (TimeDif/3.0)/1000.0
-
-    global errorVelocity
-    global integral    
-    global derivative
-    global debugTuple
-    global currentVelocity
+	mstatus.velocity = roboclaw.ReadSpeedM1(address)[2]
+        #mstatus.current = roboclaw.ReadCurrents.cur1(address)
+        resp = roboclaw.ReadEncM1(address)
+	if resp[0]:
+		# Is valid
+		mstatus.encoderCount = resp[2]
+		print resp[2]
+       	# mstatus.encoderPosition = int(roboclaw.ReadEncM1(address))
+    	rospy.sleep(0.05)
+	pub.publish(mstatus)
 
 
-    gearRation = 13.7336
-    deadband = 2
-
-
-    CPR = 360.0   #Counts per MOTOR rotation
-    maxCountsPerSec = CPR*(2500/60.0)  #Counts a second - 15000
-    maxVelocity = math.ceil(maxCountsPerSec/CPR)  #Rev/s 41.667 round to 42
-
-    currentVelocity = (EncoderDif/CPR)/dt
-
-    errorVelocityOld = errorVelocity
-    errorVelocity = targetVelocity - currentVelocity
-    
-    if abs(errorVelocity) < deadband and abs(currentVelocity) < deadband:
-        outputVelocity = 0  
-    else:
-        outputVelocity = (Kp*errorVelocity) + (Ki*integral) + (Kd*derivative)
-
-        if outputVelocity >= maxVelocity:
-            outputVelocity = maxVelocity
-        elif outputVelocity <= -maxVelocity:
-            outputVelocity = -maxVelocity
-        else:
-            integral += errorVelocity * dt
-
-        derivative = (errorVelocity - errorVelocityOld)/dt
-
-    PWM = int((outputVelocity/float(maxVelocity))*100)
-    SetPoint = int((targetVelocity/float(maxVelocity))*100)
-
-    return PWM
-
-    #pygraph =""
-    #for i in range(50):
-    #    if i == SetPoint/2:
-    #        pygraph += '|'
-    #    elif i <= PWM/2:
-    #        pygraph += '*'  
-    #    else:
-    #        pygraph += ' '
-    #debugList.append(pygraph +'\n')
-
-    #debugList.append("Position Change: " + str(EncoderDif))
-    #debugList.append("Current Velocity: " + str(currentVelocity))
-    #debugList.append("Error Velocity: " + str(errorVelocity))
-    #debugList.append("Output Velocity: " + str(outputVelocity))
-    #debugList.append("PWM Velocity: " + PWM)
-    #debugList.append("Time Difference: "+ str(dt))
-    #debugList.append("\n")
 
 #Main Program Code
 if __name__ == '__main__':
-
-    rospy.init_node('motorcontrol', anonymous=True)
+	print ("Starting main")
+    	rospy.init_node('motorcontrol', anonymous=True)
 ########    
-    names = rospy.get_param_names()
-    nodename = rospy.get_name()
-    name = rospy.get_param('~name')
-    serial = rospy.get_param('~serial_no')
-    invert = rospy.get_param('~invert')
+    	names = rospy.get_param_names()
+    	nodename = rospy.get_name()
+    	name = rospy.get_param('~name')
+    	USB = rospy.get_param('~USB')
+	qppsM1 = rospy.get_param('~qppsM1')
+	qppsM2 = rospy.get_param('~qppsM2')
 ########
-    motorControl = MotorControl()
-    mstatus = Motor_Status()
-    mdemand = Motor_Demand()
+	print ("opening roboclaw")
+	#roboclaw.Open("/dev/ttyACM0", 38400)
+	roboclaw.Open("%s" %USB, 38400)
+
+	roboclaw.SetM1VelocityPID(address, SKpM1, SKiM1, SKdM1, qppsM1)
+	roboclaw.SetM2VelocityPID(address, SKpM2, SKiM2, SKdM2, qppsM2)
+	roboclaw.SetM1PositionPID(address, PKpM1, PKiM1, PKdM1, MaxI, Deadzone, MinPos, MaxPos)
+	roboclaw.SetM2PositionPID(address, PKpM2, PKiM2, PKdM2, MaxI, Deadzone, MinPos, MaxPos)
 ########
-    pub = rospy.Publisher("%s_status" %name, Motor_Status, queue_size = 10)
-    sub = rospy.Subscriber("%s_dmd" %name,Motor_Demand, callback)
+    	#motorControl = MotorControl()
+    	mstatus = Motor_Status()
+    	mdemand = Motor_Demand()
+	mdemand. setVelocity = 0
+########
+    	pub = rospy.Publisher("%s_status" %name, Motor_Status, queue_size = 10)
+    	sub = rospy.Subscriber("%s_dmd" %name,Motor_Demand, callback)
+	#mdemand.setEncoderValue = int(mdemand.setEncoderValue)
  
-    try:
-	#logging example, uncomment to generate a log file
-    #motorControl.enableLogging(PhidgetLogLevel.PHIDGET_LOG_VERBOSE, "phidgetlog.log")
-
-        motorControl.setOnAttachHandler(motorControlAttached)
-        motorControl.setOnDetachHandler(motorControlDetached)
-        motorControl.setOnErrorhandler(motorControlError)
-        motorControl.setOnPositionChangeHandler(motorControlPositionChanged)
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        print("Exiting....")
-        exit(1)
-
-    print("Opening phidget object....")
-
-    try:
-        motorControl.openPhidget(serial)
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        print("Exiting....")
-        exit(1)
-
-    print("Waiting for attach....")
-
-    try:
-        motorControl.waitForAttach(10000)
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        try:
-            motorControl.closePhidget()
-        except PhidgetException as e:
-            print("Phidget Exception %i: %s" % (e.code, e.details))
-            print("Exiting....")
-            exit(1)
-        print("Exiting....")
-        exit(1)
-
+	print ("Entering Loop")
 #Control the motor a bit.
-    try:
-        motorControl.setAcceleration(0, 6200.00)
-        while not rospy.is_shutdown():
-	    if currentVelocity<=1 and currentVelocity>=-1 :
-		motorControl.setVelocity(0, velocityPID(mdemand.setVelocity, dt, 0))
-            try:
-                motor_status()
-	    except:
-                print ("Exiting... ")      
-                break 
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-
+	while not rospy.is_shutdown():
+		print "requesting %d" %mdemand.setEncoderValueM1
+            	roboclaw.SpeedAccelDeccelPositionM1M2(address, AccelM1, SpeedM1, DeccelM1, mdemand.setEncoderValueM1, AccelM2, SpeedM2, DeccelM2, mdemand.setEncoderValueM2, 0)
+	    	try:
+			estatus=0
+                	motor_status()
+			print "EncoderValue M1: %i" %roboclaw.ReadSpeedM1(address)[2]
+	    	except KeyboardInterrupt:
+                	print ("Ctrl-C detected!!  Exiting... ")      
+                	estatus=1
+		except Exception as e:
+			print ("Oh darn, something died: %s " % e)
+			estatus=2
 #print("Press Enter to quit....")
 
 #chr = sys.stdin.read(1)
 
-    print("Closing...")
+    	print("Closing...")
 
-    Target = 0
-    sleep(1)
-
-    try:
-        motorControl.setVelocity(0, 0)
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        print("Exiting....")
-        exit(1)
-
-    try:
-        motorControl.closePhidget()
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        print("Exiting....")
-        exit(1)
-
-    print("Done.")
-    exit(0)
+	#Slow Motor Down to Zero
+        roboclaw.SpeedAccelDeccelPositionM1M2(address, AccelM1, SpeedM1, DeccelM1, 0, AccelM2, SpeedM2, DeccelM2, 0, 0)
+	roboclaw.Close()
+    	
+	print("Done.")
+    	exit(estatus)
