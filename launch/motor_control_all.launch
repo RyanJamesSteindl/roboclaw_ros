@@ -1,0 +1,32 @@
+<launch>
+	<node name="motorcontrol_front" pkg="skupar" type="MotorPID.py" respawn="true">
+		<param name="name" value="front"/>
+		<param name="USB" value="/dev/serial/by-path/pci-0000:00:14.0-usb-0:2:1.0"/>
+		<param name="qppsM1" value="2230"/>
+		<param name="qppsM2" value="2260"/>
+    	</node>
+	<node name="motorcontrol_rear" pkg="skupar" type="MotorPID.py" respawn="true">
+		<param name="name" value="rear"/>
+		<param name="USB" value="/dev/serial/by-path/pci-0000:00:14.0-usb-0:1:1.0"/>
+		<param name="qppsM1" value="2280"/>
+		<param name="qppsM2" value="2250"/>
+    	</node>
+	
+	<!-- Config options -->
+	<arg name="serial_port" default="/dev/serial/by-path/pci-0000:00:14.0-usb-0:4:1.0"/>
+	
+	<!-- Defaults (from defaults.launch) -->
+	<arg name="launchOutput" default="screen"/>
+	<arg name="dataTopic" default="/laser/data"/>
+	<arg name="isOkTopic" default="/laser/is_ok"/>
+
+	<!-- Launch the laser node -->
+	<node name="laser_node" pkg="urg_node" type="urg_node" respawn="true" output="$(arg launchOutput)">
+		<param name="serial_port" value="$(arg serial_port)"/>
+		<remap from="first" to="$(arg dataTopic)"/>	
+		<remap from="scan" to="$(arg dataTopic)"/>	
+	</node>
+	
+	<node name="joy_node" pkg="joy" type="urg_node.cpp" respawn="true">	
+	</node>
+</launch>

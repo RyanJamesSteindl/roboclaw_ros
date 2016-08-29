@@ -1,0 +1,8 @@
+<launch>
+	<node name="motorcontrol_rear" pkg="skupar" type="MotorPID.py" respawn="true">
+		<param name="name" value="rear"/>
+		<param name="USB" value="/dev/serial/by-path/pci-0000:00:14.0-usb-0:1:1.0"/>
+		<param name="qppsM1" value="2280"/>
+		<param name="qppsM2" value="2250"/>
+    	</node>
+</launch>
