@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import math
 import rospy
 from std_msgs.msg import String
 #Basic imports
@@ -16,83 +17,112 @@ from Phidgets.Events.Events import AttachEventArgs, DetachEventArgs, ErrorEventA
 from Phidgets.Devices.MotorControl import MotorControl
 #import methods for sleeping thread
 from time import sleep
+
 from Phidgets.Phidget import PhidgetLogLevel
+from sensor_msgs.msg import Joy
 from skupar.msg import Motor_Status
 from skupar.msg import Motor_Demand
-
+from geometry_msgs.msg import Twist
 import roboclaw
 
 address = 0x80
+global front_demand
+global rear_demand
 
-##########################
-def callback(core_status,local):
-    	#rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(core_status))
-	local.velocity=core_status.velocity
-	local.current=core_status.current
-	local.error=core_status.error
-	local.distance=core_status.distance	
-	local.encoderCount=core_status.encoderCount
-	local.encoderPosition=core_status.encoderPosition
+class MCommand():
+	
+	def __init__(self):
+		self.front_status=Motor_Status()
+		self.front_demand=Motor_Demand()
+		self.rear_status=Motor_Status()
+		self.rear_demand=Motor_Demand()
+
+		self.pub_front = rospy.Publisher("front_dmd", Motor_Demand, queue_size=10)
+        	self.sub_front=rospy.Subscriber("front_status", Motor_Status, self.callback, self.front_status) 
+
+		self.pub_rear=rospy.Publisher("rear_dmd", Motor_Demand, queue_size=10)
+        	self.sub_rear=rospy.Subscriber("rear_status", Motor_Status, self.callback, self.rear_status) 
+
+		self.sub_joy=rospy.Subscriber("joy", Joy, self.joy_callback) 
+	
+		rospy.init_node('Controller')
+	
+	def callback(self,core_status,local):
+    		#rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(core_status))
+		local.velocity=core_status.velocity
+		local.current=core_status.current
+		local.error=core_status.error
+		local.distance=core_status.distance	
+		local.encoderCount=core_status.encoderCount
+		local.encoderPosition=core_status.encoderPosition
    
-def command():
-	global x
-	pub_front=rospy.Publisher("front_dmd", Motor_Demand, queue_size=10)
-        sub_front=rospy.Subscriber("front_status", Motor_Status, callback, front_status) 
+	def calcAnglePower(self, data):
+		power=math.sqrt(pow(data.axes[0],2) + pow(data.axes[1],2))
+		if data.axes[0]<0 and data.axes[1]>0:
+			angle=abs(math.atan(data.axes[1]/data.axes[0]))
+		elif data.axes[0]==0 and data.axes[1]==1:
+			angle=math.pi/2
+		elif data.axes[0]>0 and data.axes[1]>0:
+			angle=math.atan(data.axes[0]/data.axes[1])+math.pi/2
+		elif data.axes[0]==1 and data.axes[1]==0:
+			angle=math.pi
+		elif data.axes[0]>0 and data.axes[1]<0:
+			angle=math.atan(abs(data.axes[1])/data.axes[0])+math.pi
+		elif data.axes[0]==0 and data.axes[1]==-1:
+			angle=3*math.pi/2		
+		elif data.axes[0]<0 and data.axes[1]<0:
+			angle=math.atan(data.axes[0]/data.axes[1])+3*math.pi/2
+		else:
+			angle=0
+		return power, angle
 
-	pub_rear=rospy.Publisher("rear_dmd", Motor_Demand, queue_size=10)
-        sub_rear=rospy.Subscriber("rear_status", Motor_Status, callback, rear_status) 
 
-    	while not rospy.is_shutdown():
-		x=raw_input("Distance:")
-		x=float(x)
-		front_demand.setEncoderValueM1=x
-		front_demand.setEncoderValueM2=x
-		rear_demand.setEncoderValueM1=x
-		rear_demand.setEncoderValueM2=x
+	def joy_callback(self,data):
+		# set velocity to joy.axes1
+		# mdemand.setVelocityM1 = data.axes1.x
+		#front_demand.setAcceleration = joy.axesx.....
+
+		#power, angle = self.calcAnglePower(data)
+
+		#print"Angle: %f Power: %f Axis0: %f Axis1: %f"%(angle, power, data.axes[0], data.axes[1])
+		speedscale=1000
+
+		self.front_demand.setVelocityM1 = ((data.axes[1]+data.axes[4])-data.axes[0]-data.axes[3])*speedscale
+		self.front_demand.setVelocityM2 = ((data.axes[1]+data.axes[4])+data.axes[0]+data.axes[3])*speedscale
+		self.rear_demand.setVelocityM1 = ((data.axes[1]+data.axes[4])+data.axes[0]-data.axes[3])*speedscale
+		self.rear_demand.setVelocityM2 = ((data.axes[1]+data.axes[4])-data.axes[0]+data.axes[3])*speedscale
 		
-		#if x=='w':
-		#	fl_demand.setVelocity=fl_status.velocity+40
-		#	fr_demand.setVelocity=fr_status.velocity+40
-		#	rl_demand.setVelocity=rl_status.velocity+40
-		#	rr_demand.setVelocity=rr_status.velocity+40
-		#if x=='s':
-		#	fl_demand.setVelocity=fl_status.velocity-40
-		#	fr_demand.setVelocity=fr_status.velocity-40
-		#	rl_demand.setVelocity=rl_status.velocity-40
-		#	rr_demand.setVelocity=rr_status.velocity-40
-		#if x=='x':
-		#	fl_demand.setVelocity=0
-		#	fr_demand.setVelocity=0
-		#	rl_demand.setVelocity=0
-		#	rr_demand.setVelocity=0
-		#elif x=='q':
-	#		exit(0)
-		#rospy.loginfo(str(fr_demand))
-		#rospy.loginfo(str(rl_demand))
-		#rospy.loginfo(str(rr_demand))
+		self.pub_front.publish(self.front_demand)
+		self.pub_rear.publish(self.rear_demand)	
+		rospy.loginfo(str(self.front_status.velocity))
+	
 
-		pub_front.publish(front_demand)
-		pub_rear.publish(rear_demand)	
-		rospy.loginfo(str(front_status.velocity))
-		#rospy.loginfo(str(fl_demand.setVelocity))
-		
-		r = rospy.Rate(10)
-		r.sleep()
+	def command(self):
+		#mc.InitCmd()	
+	    	while not rospy.is_shutdown():
+			#print "Front Velocity M1: %d Front Velocity M2: %d"%(self.front_demand.setVelocityM1, self.front_demand.setVelocityM2)
+			#print "Rear Velocity M1: %d Rear Velocity M2: %d"%(self.rear_demand.setVelocityM1, self.rear_demand.setVelocityM2)
+			#x=raw_input("Speed:")
+			#x=float(x)
+			# Set speed demand for motor...
+			#self.front_demand.setAcceleration = x
+			#self.front_demand.setVelocityM1 = x
+			#self.front_demand.setVelocityM2 = x
+			#mc.sendCmd()
+	
+			r = rospy.Rate(10)
+			r.sleep()
 
-    	else:
-		print("Done.")
-		roboclaw.SpeedM1M2(address,0, 0)
+    		else:
+			print("Done.")
+			roboclaw.SpeedM1M2(address,0, 0)
 
 if __name__ == '__main__':
     	
-	front_status=Motor_Status()
-	front_demand=Motor_Demand()
-	rear_status=Motor_Status()
-	rear_demand=Motor_Demand()
-		
-	rospy.init_node('Controller')
+	mc = MCommand()
+	
 	try:
-	    	command()
+	    	mc.command()
 	except rospy.ROSInterruptException:
 	    	pass
 

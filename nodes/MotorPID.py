@@ -63,7 +63,10 @@ MaxPos = 100000
 
 def callback(demand):
     	rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(demand))
-#       demand.setAcceleration = demand.setAcceleration
+        
+	#mdemand.setAcceleration = demand.setAcceleration
+        mdemand.setVelocityM1 = demand.setVelocityM1
+        mdemand.setVelocityM2 = demand.setVelocityM2
         mdemand.setEncoderValueM1 = demand.setEncoderValueM1
         mdemand.setEncoderValueM2 = demand.setEncoderValueM2
 
@@ -85,7 +88,7 @@ def motor_status():
 if __name__ == '__main__':
 	print ("Starting main")
     	rospy.init_node('motorcontrol', anonymous=True)
-########    
+######## Getting the Variables from the Launchfile   
     	names = rospy.get_param_names()
     	nodename = rospy.get_name()
     	name = rospy.get_param('~name')
@@ -96,26 +99,31 @@ if __name__ == '__main__':
 	print ("opening roboclaw")
 	#roboclaw.Open("/dev/ttyACM0", 38400)
 	roboclaw.Open("%s" %USB, 38400)
-
-	roboclaw.SetM1VelocityPID(address, SKpM1, SKiM1, SKdM1, qppsM1)
-	roboclaw.SetM2VelocityPID(address, SKpM2, SKiM2, SKdM2, qppsM2)
-	roboclaw.SetM1PositionPID(address, PKpM1, PKiM1, PKdM1, MaxI, Deadzone, MinPos, MaxPos)
-	roboclaw.SetM2PositionPID(address, PKpM2, PKiM2, PKdM2, MaxI, Deadzone, MinPos, MaxPos)
+# Setting PID Parameters
+	roboclaw.SetM1VelocityPID(address, SKpM1, SKiM1, SKdM1, qppsM1) #Velocity Control Parameter
+	roboclaw.SetM2VelocityPID(address, SKpM2, SKiM2, SKdM2, qppsM2) #Velocity Control Parameter
+	roboclaw.SetM1PositionPID(address, PKpM1, PKiM1, PKdM1, MaxI, Deadzone, MinPos, MaxPos) #Position Control Parameter
+	roboclaw.SetM2PositionPID(address, PKpM2, PKiM2, PKdM2, MaxI, Deadzone, MinPos, MaxPos) #Position Control Parameter
 ########
     	#motorControl = MotorControl()
     	mstatus = Motor_Status()
     	mdemand = Motor_Demand()
-	mdemand. setVelocity = 0
+	#mdemand. setVelocity = 0
 ########
     	pub = rospy.Publisher("%s_status" %name, Motor_Status, queue_size = 10)
     	sub = rospy.Subscriber("%s_dmd" %name,Motor_Demand, callback)
+	#sub = rospy.Subscriber("joystick", joy_node, callback)
 	#mdemand.setEncoderValue = int(mdemand.setEncoderValue)
  
 	print ("Entering Loop")
 #Control the motor a bit.
 	while not rospy.is_shutdown():
-		print "requesting %d" %mdemand.setEncoderValueM1
-            	roboclaw.SpeedAccelDeccelPositionM1M2(address, AccelM1, SpeedM1, DeccelM1, mdemand.setEncoderValueM1, AccelM2, SpeedM2, DeccelM2, mdemand.setEncoderValueM2, 0)
+		print "requesting VelocityM1: %d VelocityM2: %d Acceleration: %d EncoderValueM1: %d EncoderValueM2: %d" %(mdemand.setVelocityM1, mdemand.setVelocityM2, mdemand.setAcceleration, mdemand.setEncoderValueM1, mdemand.setEncoderValueM2)
+		
+            	#roboclaw.SpeedAccelDeccelPositionM1M2(address, AccelM1, SpeedM1, DeccelM1, mdemand.setEncoderValueM1, AccelM2, SpeedM2, DeccelM2,mdemand.setEncoderValueM2, 0)
+		roboclaw.SpeedAccelM1(address, 1200, mdemand.setVelocityM1)
+		roboclaw.SpeedAccelM2(address, 1200, mdemand.setVelocityM2)
+		#roboclaw.SpeedAccelM1M2(address, 1200, mdemand.setVelocityM1, mdemand.setVelocityM2)
 	    	try:
 			estatus=0
                 	motor_status()
@@ -133,7 +141,7 @@ if __name__ == '__main__':
     	print("Closing...")
 
 	#Slow Motor Down to Zero
-        roboclaw.SpeedAccelDeccelPositionM1M2(address, AccelM1, SpeedM1, DeccelM1, 0, AccelM2, SpeedM2, DeccelM2, 0, 0)
+        #roboclaw.SpeedAccelDeccelPositionM1M2(address, AccelM1, SpeedM1, DeccelM1, 0, AccelM2, SpeedM2, DeccelM2, 0, 0)
 	roboclaw.Close()
     	
 	print("Done.")

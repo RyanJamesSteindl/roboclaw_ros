@@ -1,5 +1,6 @@
 Header header
-float32 setVelocity
-float32 setAcceleration
+int32 setVelocityM1
+int32 setVelocityM2
+int32 setAcceleration
 int32 setEncoderValueM1
 int32 setEncoderValueM2

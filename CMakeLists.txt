@@ -9,6 +9,7 @@ project(skupar)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
+  joy
   message_generation
 )
 
@@ -104,7 +105,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES skupar
-  CATKIN_DEPENDS rospy std_msgs message_runtime
+  CATKIN_DEPENDS rospy std_msgs message_runtime joy
 #  DEPENDS system_lib
 )
 
