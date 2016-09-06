@@ -71,13 +71,17 @@ def callback(demand):
         mdemand.setEncoderValueM2 = demand.setEncoderValueM2
 
 def motor_status():
-	mstatus.velocity = roboclaw.ReadSpeedM1(address)[2]
-        #mstatus.current = roboclaw.ReadCurrents.cur1(address)
-        resp = roboclaw.ReadEncM1(address)
+	rm1 = roboclaw.ReadSpeedM1(address)
+	if len(rm1) > 2:	
+		mstatus.velocity = rm1[2]
+        else:
+		print ("BAd read??? rm1 len = %d" %len(rm1))
+	#mstatus.current = roboclaw.ReadCurrents.cur1(address)
+        #resp = roboclaw.ReadEncM1(address)
 	if resp[0]:
-		# Is valid
+		# Is Not valid data
 		mstatus.encoderCount = resp[2]
-		print resp[2]
+		print "Incorrect data ", resp[2]
        	# mstatus.encoderPosition = int(roboclaw.ReadEncM1(address))
     	rospy.sleep(0.05)
 	pub.publish(mstatus)
@@ -142,7 +146,7 @@ if __name__ == '__main__':
 
 	#Slow Motor Down to Zero
         #roboclaw.SpeedAccelDeccelPositionM1M2(address, AccelM1, SpeedM1, DeccelM1, 0, AccelM2, SpeedM2, DeccelM2, 0, 0)
-	roboclaw.Close()
+	#roboclaw.Close()
     	
 	print("Done.")
     	exit(estatus)

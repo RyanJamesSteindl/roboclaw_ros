@@ -6,6 +6,8 @@ import time
 _trystimeout = 3
 
 #Command Enums
+port = None
+
 
 class Cmd():
 	M1FORWARD = 0
@@ -1034,10 +1036,6 @@ def ReadPWMMode(address):
 def Open(comport, rate):
 	global port
 	port = serial.Serial(comport, baudrate=rate, timeout=0.1, interCharTimeout=0.01)
-	return
-
-def Close():
-	port.close()
 	return
 
 

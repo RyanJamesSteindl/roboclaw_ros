@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   joy
   message_generation
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -71,6 +72,7 @@ find_package(catkin REQUIRED COMPONENTS
  generate_messages(
    DEPENDENCIES
    std_msgs
+   sensor_msgs
  )
 
 ################################################
