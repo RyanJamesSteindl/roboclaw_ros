@@ -18,7 +18,7 @@
     </node>
 
     <!-- Config options -->
-    <arg name="serial_port" default="" />
+    <arg name="serial_port" default="/dev/serial/by-path/pci-0000:00:14.0-usb-0:4:1.0" />
  
     <!-- Defaults (from defaults.launch) -->
     <arg name="launchOutput" default="screen" />
