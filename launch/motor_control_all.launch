@@ -30,9 +30,17 @@
     <node name="laser_node" pkg="urg_node" type="urg_node" respawn="true" output="$(arg launchOutput)">
     	<param name="serial_port" value="$(arg serial_port)"/>	
 	<remap from="first" to="$(arg dataTopic)" />
-    	<remap from="scan" to="$(arg dataTopic)" />
+    	<!-- <remap from="scan" to="$(arg dataTopic)" /> -->
     </node>
 
-    <node name="laser_transform" pkg="tf" type="static_transform_publisher" args="0 -.2 0 0 0 3.1415 skupar laser 100" />
+    <node name="laser_transform" pkg="tf" type="static_transform_publisher" args="0.2 0 0 0 0 3.1415 skupar laser 100" />
+    
+    <node name="command" pkg="skupar" type="command.py" respawn="true">
+    </node>
 
+    <node name="slam_gmapping" pkg="gmapping" type="slam_gmapping" scan="/scan" output="screen">
+        <param name="map_update_interval" value="0.5"/>
+	<param name="base_frame" value="skupar"/>
+	<param name="odom_frame" value="skupar"/>
+    </node>
 </launch>

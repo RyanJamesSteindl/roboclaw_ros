@@ -3,3 +3,13 @@ DEBUG:rospy.topics:tm._add: /front_status, skupar/Motor_Status, sub
 DEBUG:rospy.topics:tm._add: /rear_dmd, skupar/Motor_Demand, pub
 DEBUG:rospy.topics:tm._add: /rear_status, skupar/Motor_Status, sub
 DEBUG:rospy.topics:tm._add: /joy, sensor_msgs/Joy, sub
+DEBUG:rospy.topics:tm._add: /front_dmd, skupar/Motor_Demand, pub
+DEBUG:rospy.topics:tm._add: /front_status, skupar/Motor_Status, sub
+DEBUG:rospy.topics:tm._add: /rear_dmd, skupar/Motor_Demand, pub
+DEBUG:rospy.topics:tm._add: /rear_status, skupar/Motor_Status, sub
+DEBUG:rospy.topics:tm._add: /joy, sensor_msgs/Joy, sub
+DEBUG:rospy.topics:tm._add: /front_dmd, skupar/Motor_Demand, pub
+DEBUG:rospy.topics:tm._add: /front_status, skupar/Motor_Status, sub
+DEBUG:rospy.topics:tm._add: /rear_dmd, skupar/Motor_Demand, pub
+DEBUG:rospy.topics:tm._add: /rear_status, skupar/Motor_Status, sub
+DEBUG:rospy.topics:tm._add: /joy, sensor_msgs/Joy, sub

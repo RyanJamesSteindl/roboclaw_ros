@@ -78,12 +78,6 @@ class MCommand():
 
 
 	def joy_callback(self,data):
-		# set velocity to joy.axes1
-		# mdemand.setVelocityM1 = data.axes1.x
-		#front_demand.setAcceleration = joy.axesx.....
-
-		#power, angle = self.calcAnglePower(data)
-
 		#print"Angle: %f Power: %f Axis0: %f Axis1: %f"%(angle, power, data.axes[0], data.axes[1])
 		speedscale=1000
 
