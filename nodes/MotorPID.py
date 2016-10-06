@@ -1,14 +1,4 @@
 #!/usr/bin/env python
-
-"""Copyright 2010 Phidgets Inc.
-This work is licensed under the Creative Commons Attribution 2.5 Canada License. 
-To view a copy of this license, visit http://creativecommons.org/licenses/by/2.5/ca/
-"""
-
-__author__ = 'Adam Stelmack'
-__version__ = '2.1.8'
-__date__ = 'May 17 2010'
-
 #Basic imports
 from ctypes import *
 import sys, os, time
@@ -26,7 +16,7 @@ import serial
 
 address = 0x80
 
-# Values
+# PID Values for the Position and Velocity Control(Position Control is not used in this code) and Acceleleration/Decelleration/Speed Values.These Values are a little bit smaller than the QPPS of the motors for safety reasons(do not break motors).
 CntM1 = 0
 
 SKpM1 = 700.0
@@ -54,16 +44,15 @@ AccelM2 = 1800
 DeccelM2 = 1800
 SpeedM2 = 2100
 
-############
+#Values for the Positioncontrol
 Deadzone = 15
 MaxI = 20
 MinPos = 0
 MaxPos = 100000
 
-
+#Callback for the values from the Command node. These values are written in the local variables from mdemand.
 def callback(demand):
     	rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(demand))
-        
 	#mdemand.setAcceleration = demand.setAcceleration
         mdemand.setVelocityM1 = demand.setVelocityM1
         mdemand.setVelocityM2 = demand.setVelocityM2
@@ -76,17 +65,17 @@ def motor_status():
 		mstatus.velocity = rm1[2]
         else:
 		print ("BAd read??? rm1 len = %d" %len(rm1))
-	#mstatus.current = roboclaw.ReadCurrents.cur1(address)
-        #resp = roboclaw.ReadEncM1(address)
 	if resp[0]:
 		# Is Not valid data
 		mstatus.encoderCount = resp[2]
 		print "Incorrect data ", resp[2]
-       	# mstatus.encoderPosition = int(roboclaw.ReadEncM1(address))
-    	rospy.sleep(0.05)
+	mstatus.encoderVelocityM1=roboclaw.ReadSpeedM1(adress)    	
+	mstatus.encoderVelocityM2=roboclaw.ReadSpeedM2(adress)    	
+	mstatus.encoderPositionM1=roboclaw.ReadEncM1(adress)    	
+	mstatus.encoderPositionM2=roboclaw.ReadEncM2(adress)    	
+
+	rospy.sleep(0.05)
 	pub.publish(mstatus)
-
-
 
 #Main Program Code
 if __name__ == '__main__':
@@ -101,33 +90,24 @@ if __name__ == '__main__':
 	qppsM2 = rospy.get_param('~qppsM2')
 ########
 	print ("opening roboclaw")
-	#roboclaw.Open("/dev/ttyACM0", 38400)
 	roboclaw.Open("%s" %USB, 38400)
 # Setting PID Parameters
 	roboclaw.SetM1VelocityPID(address, SKpM1, SKiM1, SKdM1, qppsM1) #Velocity Control Parameter
 	roboclaw.SetM2VelocityPID(address, SKpM2, SKiM2, SKdM2, qppsM2) #Velocity Control Parameter
 	roboclaw.SetM1PositionPID(address, PKpM1, PKiM1, PKdM1, MaxI, Deadzone, MinPos, MaxPos) #Position Control Parameter
 	roboclaw.SetM2PositionPID(address, PKpM2, PKiM2, PKdM2, MaxI, Deadzone, MinPos, MaxPos) #Position Control Parameter
-########
-    	#motorControl = MotorControl()
+######## Creating a Motor_Status and Motor_Demand MSG file.
     	mstatus = Motor_Status()
     	mdemand = Motor_Demand()
-	#mdemand. setVelocity = 0
-########
+######## Creating the Publisher and Subscriber
     	pub = rospy.Publisher("%s_status" %name, Motor_Status, queue_size = 10)
     	sub = rospy.Subscriber("%s_dmd" %name,Motor_Demand, callback)
-	#sub = rospy.Subscriber("joystick", joy_node, callback)
-	#mdemand.setEncoderValue = int(mdemand.setEncoderValue)
- 
 	print ("Entering Loop")
-#Control the motor a bit.
+#VelocityControl of the motor
 	while not rospy.is_shutdown():
 		print "requesting VelocityM1: %d VelocityM2: %d Acceleration: %d EncoderValueM1: %d EncoderValueM2: %d" %(mdemand.setVelocityM1, mdemand.setVelocityM2, mdemand.setAcceleration, mdemand.setEncoderValueM1, mdemand.setEncoderValueM2)
-		
-            	#roboclaw.SpeedAccelDeccelPositionM1M2(address, AccelM1, SpeedM1, DeccelM1, mdemand.setEncoderValueM1, AccelM2, SpeedM2, DeccelM2,mdemand.setEncoderValueM2, 0)
 		roboclaw.SpeedAccelM1(address, 1200, mdemand.setVelocityM1)
 		roboclaw.SpeedAccelM2(address, 1200, mdemand.setVelocityM2)
-		#roboclaw.SpeedAccelM1M2(address, 1200, mdemand.setVelocityM1, mdemand.setVelocityM2)
 	    	try:
 			estatus=0
                 	motor_status()
@@ -138,15 +118,9 @@ if __name__ == '__main__':
 		except Exception as e:
 			print ("Oh darn, something died: %s " % e)
 			estatus=2
-#print("Press Enter to quit....")
+    	roboclaw.SpeedAccelM1(address, 1200, 0)
+	roboclaw.SpeedAccelM2(address, 1200, 0)
 
-#chr = sys.stdin.read(1)
-
-    	print("Closing...")
-
-	#Slow Motor Down to Zero
-        #roboclaw.SpeedAccelDeccelPositionM1M2(address, AccelM1, SpeedM1, DeccelM1, 0, AccelM2, SpeedM2, DeccelM2, 0, 0)
-	#roboclaw.Close()
-    	
+	print("Closing...")
 	print("Done.")
     	exit(estatus)

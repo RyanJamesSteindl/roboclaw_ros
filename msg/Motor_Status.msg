@@ -3,8 +3,7 @@ int32 serial_no
 string name
 int16 error
 float32 current
-float32 velocity
-float32 encoderVelocity
-int16 distance
-int32 encoderCount
-int32 encoderPosition
+float32 encoderVelocityM1
+float32 encoderVelocityM2
+int32 encoderPositionM1
+int32 encoderPositionM2
