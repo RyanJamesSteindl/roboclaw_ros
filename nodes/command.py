@@ -29,6 +29,9 @@ class MCommand():
 		self.front_demand=Motor_Demand()
 		self.rear_status=Motor_Status()
 		self.rear_demand=Motor_Demand()
+		self.cmd_velocity=Twist()
+
+		self.sub_cmd_vel=rospy.Subscriber("cmd_vel", Twist, self.callback_cmd_vel)
 
 		self.pub_front = rospy.Publisher("front_dmd", Motor_Demand, queue_size=10)
         	self.sub_front=rospy.Subscriber("front_status", Motor_Status, self.callback, self.front_status) 
@@ -40,6 +43,10 @@ class MCommand():
 	
 		rospy.init_node('Controller')
 	
+	def callback_cmd_vel(self,move):
+    		rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(move))
+		#self.linear.x=move.linear.x
+  
 	def callback(self,core_status,local):
     		#rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(core_status))
 		local.velocity=core_status.velocity

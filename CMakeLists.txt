@@ -52,6 +52,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    Motor_Status.msg
    Motor_Demand.msg
+   heartbeat.msg
  )
 
 ## Generate services in the 'srv' folder

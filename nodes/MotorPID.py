@@ -8,6 +8,7 @@ import time
 import rospy
 from skupar.msg import Motor_Status
 from skupar.msg import Motor_Demand
+from skupar.msg import heartbeat
 from std_msgs.msg import String
 from ctypes import *
 #Import Roboclaw
@@ -49,6 +50,8 @@ Deadzone = 15
 MaxI = 20
 MinPos = 0
 MaxPos = 100000
+#Time
+global current_time
 
 #Callback for the values from the Command node. These values are written in the local variables from mdemand.
 def callback(demand):
@@ -59,6 +62,16 @@ def callback(demand):
         mdemand.setEncoderValueM1 = demand.setEncoderValueM1
         mdemand.setEncoderValueM2 = demand.setEncoderValueM2
 
+def callback_heartbeat(heartbeat):
+    	rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(heartbeat))
+	hbeat.hb=heartbeat.hb
+
+#	old_time=current_time
+#	current_time=rospy.get_rostime()
+#	diff_time=current_time-old_time
+#
+#	if diff_time >0.5:
+#		hbeat.hb=False
 def motor_status():
 	rm1 = roboclaw.ReadSpeedM1(address)
 	if len(rm1) > 2:	
@@ -99,9 +112,11 @@ if __name__ == '__main__':
 ######## Creating a Motor_Status and Motor_Demand MSG file.
     	mstatus = Motor_Status()
     	mdemand = Motor_Demand()
+	hbeat = heartbeat()
 ######## Creating the Publisher and Subscriber
     	pub = rospy.Publisher("%s_status" %name, Motor_Status, queue_size = 10)
     	sub = rospy.Subscriber("%s_dmd" %name,Motor_Demand, callback)
+    	sub = rospy.Subscriber("Heartbeat",heartbeat, callback_heartbeat)
 	print ("Entering Loop")
 #VelocityControl of the motor
 	while not rospy.is_shutdown():
@@ -110,17 +125,19 @@ if __name__ == '__main__':
 		roboclaw.SpeedAccelM2(address, 1200, mdemand.setVelocityM2)
 	    	try:
 			estatus=0
-                	motor_status()
+               		motor_status()
 			print "EncoderValue M1: %i" %roboclaw.ReadSpeedM1(address)[2]
 	    	except KeyboardInterrupt:
-                	print ("Ctrl-C detected!!  Exiting... ")      
-                	estatus=1
+               		print ("Ctrl-C detected!!  Exiting... ")      
+               		estatus=1
 		except Exception as e:
 			print ("Oh darn, something died: %s " % e)
 			estatus=2
-    	roboclaw.SpeedAccelM1(address, 1200, 0)
+	#Stop the Robot after the nodes has been closed
+	roboclaw.SpeedAccelM1(address, 1200, 0)
 	roboclaw.SpeedAccelM2(address, 1200, 0)
 
 	print("Closing...")
 	print("Done.")
-    	exit(estatus)
+  	exit()
+
