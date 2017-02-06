@@ -8,7 +8,6 @@ import time
 import rospy
 from skupar.msg import Motor_Status
 from skupar.msg import Motor_Demand
-from skupar.msg import heartbeat
 from std_msgs.msg import String
 from ctypes import *
 #Import Roboclaw
@@ -62,9 +61,9 @@ def callback(demand):
         mdemand.setEncoderValueM1 = demand.setEncoderValueM1
         mdemand.setEncoderValueM2 = demand.setEncoderValueM2
 
-def callback_heartbeat(heartbeat):
-    	rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(heartbeat))
-	hbeat.hb=heartbeat.hb
+#def callback_heartbeat(heartbeat):
+#    	rospy.loginfo(rospy.get_caller_id() + 'I heard %s' %(heartbeat))
+#	hbeat.hb=heartbeat.hb
 
 #	old_time=current_time
 #	current_time=rospy.get_rostime()
@@ -72,6 +71,8 @@ def callback_heartbeat(heartbeat):
 #
 #	if diff_time >0.5:
 #		hbeat.hb=False
+
+
 def motor_status():
 	rm1 = roboclaw.ReadSpeedM1(address)
 	if len(rm1) > 2:	
@@ -112,11 +113,11 @@ if __name__ == '__main__':
 ######## Creating a Motor_Status and Motor_Demand MSG file.
     	mstatus = Motor_Status()
     	mdemand = Motor_Demand()
-	hbeat = heartbeat()
+	#hbeat = heartbeat()
 ######## Creating the Publisher and Subscriber
     	pub = rospy.Publisher("%s_status" %name, Motor_Status, queue_size = 10)
     	sub = rospy.Subscriber("%s_dmd" %name,Motor_Demand, callback)
-    	sub = rospy.Subscriber("Heartbeat",heartbeat, callback_heartbeat)
+    #	sub = rospy.Subscriber("Heartbeat",heartbeat, callback_heartbeat)
 	print ("Entering Loop")
 #VelocityControl of the motor
 	while not rospy.is_shutdown():

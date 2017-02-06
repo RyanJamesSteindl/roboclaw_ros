@@ -1,0 +1,10 @@
+<launch>
+
+    <!-- MOTORCONTROLLER NODE -->
+    <node name="motorcontrol_front" pkg="skupar" type="MotorDC.py">
+        <param name="name" value="main"/>
+        <param name="USB" value="/dev/ttyACM0"/>
+        
+    </node>
+</launch>
+

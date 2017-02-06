@@ -2,6 +2,8 @@ Header header
 int32 serial_no
 string name
 int16 error
-float32 voltage
+float32 current
+float32 encoderVelocityM1
+float32 encoderVelocityM2
 int32 currentM1
 int32 currentM2

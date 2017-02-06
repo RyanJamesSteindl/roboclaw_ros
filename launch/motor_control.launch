@@ -1,0 +1,11 @@
+<launch>
+
+    <!-- MOTORCONTROLLER NODE -->
+    <node name="Roboclaw_controller" pkg="roboclaw_ros" type="MotorDC.py" output="screen">
+        <param name="name" value="roboclaw"/>
+        <param name="USB" value="/dev/ttyACM0"/>
+        <param name="Hz" value="50"/>
+        
+    </node>
+</launch>
+

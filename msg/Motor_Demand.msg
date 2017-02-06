@@ -1,6 +1,3 @@
 Header header
-int32 setVelocityM1
-int32 setVelocityM2
-int32 setAcceleration
-int32 setEncoderValueM1
-int32 setEncoderValueM2
+float32 PWM_M1
+float32 PWM_M2
